@@ -1,0 +1,254 @@
+# ============================================================
+# GOLDMIND - XAUUSD AUTONOMOUS TRADING BOT
+# ============================================================
+
+strategy_version:
+  version: "1.0.0"
+  version_notes: "Initial - 3 setups, macro filter, regime detection"
+
+mt5:
+  symbol: "XAUUSD"
+  symbol_fallbacks: ["XAUUSDm", "XAUUSD.", "XAUUSD.i", "GOLD", "Gold", "GOLDm"]
+  magic_number: 123456
+  deviation: 20
+  filling_type: "IOC"
+
+gold_specs:
+  typical_contract_size: 100
+  typical_spread_points: 20
+
+strategy:
+  bias_timeframe: "H4"
+  bias_ema_period: 200
+  structure_timeframe: "H1"
+  entry_timeframe: "M15"
+  precision_timeframe: "M5"
+  fast_ema: 50
+  slow_ema: 200
+  enable_sweep_reversal: true
+  enable_trend_continuation: true
+  enable_flag_breakout: true
+  lookback_days: 10
+  level_touch_tolerance: 50
+  psychological_levels: true
+
+sessions:
+  broker_timezone: "auto"
+  asian:
+    timezone: "Asia/Tokyo"
+    start: "07:00"
+    end: "16:00"
+  london:
+    timezone: "Europe/London"
+    start: "08:00"
+    end: "16:30"
+  new_york:
+    timezone: "America/New_York"
+    start: "08:00"
+    end: "17:00"
+  trade_sessions: ["london", "ny_overlap"]
+  dead_zone_start: "16:00"
+  dead_zone_end: "19:00"
+
+risk:
+  risk_per_trade_pct: 1.0
+  max_risk_per_trade_pct: 2.0
+  min_lot_size: 0.01
+  max_lot_size: 0.10
+  max_concurrent_trades: 2
+  min_rr_ratio: 2.0
+  target_rr_ratio: 2.5
+  min_sl_points: 200
+  max_sl_points: 500
+  wiggle_room_points: 30
+  partial_close_pct: 50
+  move_to_be_after_partial: true
+  trailing_stop_enabled: true
+  trailing_stop_distance: 150
+  max_spread_points: 40
+
+margin:
+  min_margin_level: 200
+  warning_margin_level: 150
+  danger_margin_level: 100
+  max_margin_usage_pct: 50
+
+sanity_check:
+  enabled: true
+  max_lot_hard_ceiling: 1.0
+  max_risk_pct_per_position: 5
+
+circuit_breakers:
+  max_daily_loss_pct: 3.0
+  max_consecutive_losses: 3
+  consecutive_loss_cooldown_hours: 4
+  max_weekly_drawdown_pct: 7.0
+  max_total_drawdown_pct: 15.0
+  min_account_balance: 100.0
+
+adaptive_sizing:
+  enabled: true
+  after_2_losses_multiplier: 0.5
+  after_3_losses_multiplier: 0.25
+  high_atr_multiplier: 0.5
+  drawdown_recovery_multiplier: 0.5
+
+compounding:
+  enabled: true
+  scale_up_at_pct: 20
+  scale_up_increment: 0.25
+  max_risk_per_trade: 2.0
+  reset_to_base_after_drawdown: true
+  track_withdrawals: true
+  min_balance_after_withdrawal: 600
+
+regime:
+  enabled: true
+  adx_period: 14
+  adx_trending_threshold: 25
+  adx_ranging_threshold: 20
+  atr_period: 14
+  atr_spike_multiplier: 2.0
+  regime_check_interval_minutes: 15
+  regime_confirmation_bars: 3
+
+macro:
+  enabled: true
+  dxy_symbol: "USDX"
+  dxy_symbol_fallbacks: ["DXY", "USDX.F", "DX.F", "Dollar_Index"]
+  dxy_ema_period: 50
+  dxy_filter_enabled: true
+  dxy_strong_trend_adx: 30
+  us10y_symbol: "US10Y.F"
+  us10y_symbol_fallbacks: ["US10YY.F", "TNX", "US10Y"]
+  us10y_filter_enabled: true
+  yield_change_threshold: 0.05
+  vix_symbol: "VIX.F"
+  vix_symbol_fallbacks: ["VIX", "VIXM", "VIX.i"]
+  vix_filter_enabled: true
+  vix_risk_off_threshold: 25
+  vix_extreme_threshold: 35
+  use_web_api_fallback: true
+  web_api_source: "yahoo_finance"
+  web_api_cache_minutes: 15
+
+news:
+  enabled: true
+  source: "mql5_calendar"
+  block_events:
+    - "NonFarm Payrolls"
+    - "FOMC Rate Decision"
+    - "CPI"
+    - "PPI"
+    - "Fed Chair Speech"
+    - "GDP"
+    - "Retail Sales"
+    - "Initial Jobless Claims"
+  pre_event_block_minutes: 30
+  post_event_block_minutes: 15
+  fomc_pre_block_minutes: 60
+  fomc_post_block_minutes: 30
+
+holidays:
+  closed_dates_2026:
+    - "2026-01-01"
+    - "2026-04-03"
+    - "2026-12-25"
+  early_close_dates_2026:
+    - "2026-11-26"
+    - "2026-12-24"
+    - "2026-12-31"
+  early_close_time: "13:00"
+
+trade_management:
+  check_interval_seconds: 10
+  trailing_activation_rr: 1.5
+  max_trade_duration_hours: 24
+  move_to_be_at_rr: 1.0
+  close_all_before_weekend: true
+  friday_close_time: "15:30"
+  swap_aware: true
+  close_breakeven_before_swap: true
+  swap_rollover_time: "17:00"
+  max_overnight_holds: 1
+
+data_validation:
+  enabled: true
+  max_candle_age_minutes: 30
+  max_price_gap_pct: 5.0
+  reject_zero_prices: true
+  reject_nan_values: true
+  reject_high_less_than_low: true
+
+broker_monitoring:
+  enabled: true
+  check_symbol_specs_daily: true
+  alert_on_spec_change: true
+  track_spread_average: true
+  spread_regime_change_multiplier: 2.0
+  check_leverage_before_trade: true
+  alert_on_leverage_change: true
+
+telegram:
+  enabled: true
+  notify_trade_open: true
+  notify_trade_close: true
+  notify_partial_close: true
+  notify_circuit_breaker: true
+  notify_errors: true
+  notify_daily_report: true
+  daily_report_time: "17:30"
+  notify_weekly_report: true
+  weekly_report_day: "friday"
+  enable_commands: true
+  max_messages_per_minute: 10
+
+database:
+  path: "data/goldmind.db"
+  wal_mode: true
+  backup_enabled: true
+  backup_interval_hours: 24
+  archive_after_months: 6
+
+logging:
+  level: "INFO"
+  log_file: "logs/goldmind.log"
+  max_file_size_mb: 10
+  backup_count: 5
+  log_all_signals: true
+  log_market_data: false
+
+backtesting:
+  default_start_date: "2022-01-01"
+  default_end_date: "2025-12-31"
+  initial_balance: 500.0
+  commission_per_lot: 0.0
+  spread_simulation: 25
+  slippage_simulation_points: 3
+  walk_forward:
+    in_sample_months: 6
+    out_of_sample_months: 2
+    minimum_trades: 30
+
+health:
+  enabled: true
+  min_win_rate_threshold: 35.0
+  min_profit_factor_threshold: 1.0
+  evaluation_window_trades: 50
+  auto_pause_on_degradation: true
+  heartbeat_interval_minutes: 30
+  mt5_reconnect_attempts: 5
+  mt5_reconnect_delay_seconds: 30
+  max_memory_mb: 500
+  max_cpu_percent: 80
+  min_disk_free_gb: 1.0
+  max_clock_drift_seconds: 30
+  pause_on_clock_drift_seconds: 120
+
+warm_up:
+  required_bars:
+    H4: 250
+    H1: 300        # >= slow_ema(200) + ADX(42) headroom
+    M15: 300
+    M5: 200
+    D1: 60
