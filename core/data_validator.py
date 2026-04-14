@@ -47,6 +47,7 @@ class DataValidator:
         require_volume: bool = True,
         max_tick_age_seconds: int = 60,
         max_tick_spread_points: int = 100,
+        max_price_gap_pct_by_tf: dict[str, float] | None = None,
     ) -> None:
         self.max_candle_age_minutes = max_candle_age_minutes
         self.max_price_gap_pct = max_price_gap_pct
@@ -56,6 +57,9 @@ class DataValidator:
         self.require_volume = require_volume
         self.max_tick_age_seconds = max_tick_age_seconds
         self.max_tick_spread_points = max_tick_spread_points
+        # Per-TF gap overrides: gold D1 closes legitimately jump on FOMC days;
+        # a scalar 5% is fine intraday but too strict on the daily chart.
+        self.max_price_gap_pct_by_tf = dict(max_price_gap_pct_by_tf or {})
 
     # ------------------------------------------------------------------
     # Candle DataFrame validation
@@ -121,11 +125,13 @@ class DataValidator:
             curr = closes[1:]
             with np.errstate(divide="ignore", invalid="ignore"):
                 pct = np.where(prev > 0, np.abs(curr - prev) / prev * 100.0, 0.0)
-            if np.any(pct > self.max_price_gap_pct):
+            gap_limit = float(self.max_price_gap_pct_by_tf.get(
+                timeframe, self.max_price_gap_pct))
+            if np.any(pct > gap_limit):
                 idx = int(np.argmax(pct))
                 return self._fail(
                     symbol, timeframe,
-                    f"price gap {pct[idx]:.2f}% > {self.max_price_gap_pct}% at row {idx}",
+                    f"price gap {pct[idx]:.2f}% > {gap_limit}% at row {idx}",
                 )
 
         return ValidationResult(True, "ok")

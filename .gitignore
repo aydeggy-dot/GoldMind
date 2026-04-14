@@ -1,5 +1,18 @@
 config/credentials.yaml
 config/config.yaml
+
+# Never commit secret notes, screenshots, or local-only guides
+mycon.txt
+*.secret
+*.secrets.txt
+*.png
+*.jpg
+*.jpeg
+GOLDMIND_PRODUCTION_GUIDE.md
+GoldMind_Production_Guide.docx
+*.docx
+*.doc
+*.pdf
 data/*.db
 data/*.db-journal
 data/*.db-wal

@@ -137,6 +137,7 @@ class Engine:
         return {
             "max_candle_age_minutes": cfg.get("max_candle_age_minutes", 30),
             "max_price_gap_pct": cfg.get("max_price_gap_pct", 5.0),
+            "max_price_gap_pct_by_tf": cfg.get("max_price_gap_pct_by_tf") or {},
             "reject_zero_prices": cfg.get("reject_zero_prices", True),
             "reject_nan_values": cfg.get("reject_nan_values", True),
             "reject_high_less_than_low": cfg.get("reject_high_less_than_low", True),

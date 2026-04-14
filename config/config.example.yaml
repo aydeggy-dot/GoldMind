@@ -176,6 +176,14 @@ data_validation:
   enabled: true
   max_candle_age_minutes: 30
   max_price_gap_pct: 5.0
+  # Gold D1 closes can legitimately gap on FOMC / major news days.
+  # Per-TF overrides keep intraday strict while allowing real D1 moves.
+  max_price_gap_pct_by_tf:
+    D1: 15.0
+    H4: 10.0
+    H1: 5.0
+    M15: 5.0
+    M5: 5.0
   reject_zero_prices: true
   reject_nan_values: true
   reject_high_less_than_low: true

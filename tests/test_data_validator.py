@@ -72,6 +72,20 @@ def test_stale_data_rejected(validator):
     assert not res and "stale" in res.reason
 
 
+def test_per_tf_gap_override_allows_d1_jump(now):
+    # 10% D1 jump would fail scalar 5% but passes with per-TF D1=15% override.
+    v = DataValidator(max_price_gap_pct=5.0,
+                      max_price_gap_pct_by_tf={"D1": 15.0})
+    df = _good_df(now)
+    new_close = df.loc[9, "close"] * 1.10
+    df.loc[10, "close"] = new_close
+    df.loc[10, "open"] = new_close - 0.2
+    df.loc[10, "high"] = new_close + 0.5
+    df.loc[10, "low"] = new_close - 1.0
+    assert bool(v.validate_candles(df, "D1", "XAUUSD", now))
+    assert not bool(v.validate_candles(df, "H1", "XAUUSD", now))
+
+
 def test_price_gap_rejected(validator, now):
     df = _good_df(now)
     new_close = df.loc[9, "close"] * 1.10  # 10% jump
