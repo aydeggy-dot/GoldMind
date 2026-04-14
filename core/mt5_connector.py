@@ -173,12 +173,21 @@ class MT5Connector:
     # Account / symbol / tick
     # ------------------------------------------------------------------
     def get_account_info(self) -> dict[str, Any] | None:
+        """Return MT5 account info with normalized field names.
+
+        MT5 exposes `margin_free` but the rest of the codebase
+        (engine/risk/templates) reads `free_margin`. We keep the raw
+        MT5 names AND add the normalized aliases so either works.
+        """
         with self._lock:
             info = mt5.account_info()
             if info is None:
                 logger.error("account_info() returned None: %s", mt5.last_error())
                 return None
-            return info._asdict()
+            d = info._asdict()
+            # Alias MT5 -> codebase names without losing originals
+            d.setdefault("free_margin", d.get("margin_free", 0.0))
+            return d
 
     def get_symbol_info(self, symbol: str | None = None) -> dict[str, Any] | None:
         """Fetch FRESH symbol info — call before every position size calc."""
