@@ -1,4 +1,5 @@
 config/credentials.yaml
+config/credentials*.yaml
 config/config.yaml
 
 # Never commit secret notes, screenshots, or local-only guides

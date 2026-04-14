@@ -318,6 +318,9 @@ class Engine:
         self.risk.reset_daily(now)
         self._upsert_baseline_if_changed()
         self._check_clock_drift()
+        # Refresh broker-UTC offset in case of DST transition
+        if hasattr(self.connector, "refresh_broker_offset"):
+            self.connector.refresh_broker_offset()
         self.state.last_daily_reset = today
         self._save_state()
         self.notifier.notify("system", f"Daily reset complete for {today}")

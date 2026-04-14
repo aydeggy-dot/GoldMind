@@ -71,6 +71,7 @@ class MT5Connector:
         self._lock = threading.RLock()
         self._connected = False
         self._symbol: str | None = None
+        self._broker_offset_cache: timedelta | None = None
 
     # ------------------------------------------------------------------
     # Connection
@@ -227,7 +228,12 @@ class MT5Connector:
                 logger.warning("No rates for %s %s: %s", sym, timeframe, mt5.last_error())
                 return pd.DataFrame()
             df = pd.DataFrame(rates)
-            df["time"] = pd.to_datetime(df["time"], unit="s", utc=True)
+            # MT5 returns bar times as broker-server wall clock encoded as
+            # seconds-since-epoch. Treating them as UTC yields broker-local
+            # time, not real UTC. Apply broker offset so downstream (stale
+            # checks, session windows, Asian range) work with true UTC.
+            df["time"] = pd.to_datetime(df["time"], unit="s", utc=True) \
+                + self._broker_utc_offset()
             return df.iloc[:-1].reset_index(drop=True)
 
     # ------------------------------------------------------------------
@@ -248,6 +254,31 @@ class MT5Connector:
                 return None
             broker_utc = datetime.fromtimestamp(tick.time, tz=timezone.utc)
             return datetime.now(timezone.utc) - broker_utc
+
+    def _broker_utc_offset(self) -> timedelta:
+        """Broker wall-clock offset vs UTC, rounded to the nearest hour.
+
+        MT5 timestamps ARE broker wall clock seconds interpreted as UTC,
+        so `real_utc = wall_as_utc + offset` where `offset = drift rounded`.
+        We round to whole hours to strip tiny VPS-NTP jitter; broker
+        timezones are always on whole-hour (or half-hour) offsets in
+        practice. Half-hour brokers would need 1800s rounding — add later
+        if we hit one. Cached across calls to avoid a tick round-trip
+        per candle fetch.
+        """
+        if self._broker_offset_cache is not None:
+            return self._broker_offset_cache
+        drift = self.get_clock_drift()
+        if drift is None:
+            return timedelta(0)
+        offset_hours = round(drift.total_seconds() / 3600)
+        self._broker_offset_cache = timedelta(hours=offset_hours)
+        logger.info("Broker UTC offset inferred: %+d hours", offset_hours)
+        return self._broker_offset_cache
+
+    def refresh_broker_offset(self) -> None:
+        """Clear the cached broker offset. Call after daily reset / DST shift."""
+        self._broker_offset_cache = None
 
     # ------------------------------------------------------------------
     # Margin pre-check
