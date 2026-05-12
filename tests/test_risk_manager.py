@@ -198,14 +198,14 @@ def test_validate_signal_rejects_low_rr(rm, symbol_info):
 
 def test_validate_signal_rejects_wide_spread(rm, symbol_info):
     class Sig:
-        rr_ratio = 2.5; entry = 2000.0; sl = 1998.0; direction = Direction.LONG
+        rr_ratio = 2.5; entry = 2000.0; sl = 1990.0; direction = Direction.LONG  # 1000pts, within bounds
     ok, reason = rm.validate_signal(Sig(), symbol_info, spread_points=100)
     assert not ok and "spread" in reason
 
 
 def test_validate_signal_rejects_duplicate_direction(rm, symbol_info):
     class Sig:
-        rr_ratio = 2.5; entry = 2000.0; sl = 1998.0; direction = Direction.LONG
+        rr_ratio = 2.5; entry = 2000.0; sl = 1990.0; direction = Direction.LONG  # 1000pts, within bounds
     class Pos:
         type = 0  # BUY
     ok, reason = rm.validate_signal(Sig(), symbol_info, spread_points=10,
@@ -215,7 +215,7 @@ def test_validate_signal_rejects_duplicate_direction(rm, symbol_info):
 
 def test_validate_signal_passes_clean(rm, symbol_info):
     class Sig:
-        rr_ratio = 2.5; entry = 2000.0; sl = 1997.5; direction = Direction.LONG
+        rr_ratio = 2.5; entry = 2000.0; sl = 1990.0; direction = Direction.LONG  # 1000pts, within bounds
     ok, _ = rm.validate_signal(Sig(), symbol_info, spread_points=10)
     assert ok
 

@@ -354,10 +354,14 @@ class Strategy:
         rr = abs(tp - entry) / max(abs(entry - sl), 1e-9)
 
         score = {"base": 0.5}
+
+        # H4 alignment: sweep reversals in ranging markets don't need trend alignment
+        # — the whole point is fading a liquidity grab in a contained range.
         if h4_aligned:
             score["h4_align"] = 0.15
-        else:
+        elif not (setup == SetupType.SWEEP_REVERSAL and regime == Regime.RANGING):
             score["counter_trend"] = -0.20
+
         if macro_aligned:
             score["macro_align"] = 0.15
         elif macro == MacroBias.CONFLICTING:
@@ -366,6 +370,10 @@ class Strategy:
             score["fresh_zone"] = 0.10
         if regime in (Regime.TRENDING_BULLISH, Regime.TRENDING_BEARISH) and h4_aligned:
             score["trend_confluence"] = 0.10
+        if regime == Regime.RANGING and setup == SetupType.SWEEP_REVERSAL:
+            score["ranging_reversal"] = 0.10   # this is the native habitat
+        if regime == Regime.TRANSITIONING:
+            score["transitioning_discount"] = -0.05  # regime uncertainty
 
         confidence = float(np.clip(sum(score.values()), 0.0, 1.0))
         return Signal(

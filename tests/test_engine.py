@@ -157,8 +157,11 @@ def _engineer_pullback(h1: pd.DataFrame, fast_ema_period: int) -> pd.DataFrame:
     fast = EMAIndicator(close=h1["close"], window=fast_ema_period).ema_indicator()
     fn = float(fast.iloc[-1])
     h1 = h1.copy()
-    h1.loc[h1.index[-1], "low"] = fn - 1.5
-    h1.loc[h1.index[-1], "open"] = fn - 1.0
+    # Pullback must produce SL >= min_sl_points (500) * point (0.01) = $5.
+    # entry=fn+2.0, low=fn-2.5, wiggle=100pts=$1.0 → sl_dist=$5.5 → 550pts ✓
+    # True Range = max(4.8, ~9.5, ~13.75) = 13.75 < 15.7 → ATR ratio ≈ 1.87 < 2.0 (no VOLATILE_CRISIS)
+    h1.loc[h1.index[-1], "low"] = fn - 2.5
+    h1.loc[h1.index[-1], "open"] = fn - 1.5
     h1.loc[h1.index[-1], "close"] = fn + 2.0
     h1.loc[h1.index[-1], "high"] = fn + 2.3
     return h1

@@ -184,6 +184,13 @@ class Engine:
         if not self.symbol:
             raise RuntimeError("XAUUSD symbol could not be discovered")
 
+        # Clear any paused state from a previous crash/clock-drift pause so the
+        # engine re-evaluates health fresh. If a real problem exists, the checks
+        # below will immediately re-set paused=True.
+        if self.state.paused:
+            logger.info("Startup: clearing stale paused state — re-evaluating health")
+            self.state.paused = False
+
         # Capture broker spec baseline + clock drift on first run
         self._upsert_baseline_if_changed()
         self._check_clock_drift()
@@ -345,9 +352,13 @@ class Engine:
             diffs = {k: (baseline.get(k), v) for k, v in current.items()
                      if baseline.get(k) is not None and baseline.get(k) != v}
             if diffs:
+                # Swap rate changes are cosmetic for us (close_breakeven_before_swap=true).
+                # Reserve URGENT for structural changes that affect sizing or margin.
+                _swap_only_keys = {"swap_long", "swap_short", "swap_3days"}
+                is_urgent = not set(diffs).issubset(_swap_only_keys)
                 self.notifier.notify("broker",
                                      f"Broker spec change for {self.symbol}: {diffs}",
-                                     urgent=True)
+                                     urgent=is_urgent)
         self.db.upsert_broker_baseline(self.symbol or "", current)
 
     def _check_clock_drift(self) -> None:
@@ -358,10 +369,17 @@ class Engine:
         pause_at = float(self.cfg["health"]["pause_on_clock_drift_seconds"])
         warn_at = float(self.cfg["health"]["max_clock_drift_seconds"])
         if secs >= pause_at:
-            self.state.paused = True
-            self._save_state()
-            self.notifier.notify("clock", f"Clock drift {secs:.0f}s — engine paused",
-                                 urgent=True)
+            if self._is_active_session():
+                # Only pause during live trading hours. After Friday close the MT5
+                # server clock freezes at the last tick, producing artificial drift
+                # of 3 h (Friday night) → 27 h (Saturday) that is NOT a real problem.
+                self.state.paused = True
+                self._save_state()
+                self.notifier.notify("clock", f"Clock drift {secs:.0f}s — engine paused",
+                                     urgent=True)
+            else:
+                self.notifier.notify("clock",
+                                     f"Clock drift {secs:.0f}s (market closed — not pausing)")
         elif secs >= warn_at:
             self.notifier.notify("clock", f"Clock drift {secs:.0f}s")
 
@@ -683,5 +701,17 @@ class Engine:
 
 
 def RegimeDetector_should_trade(regime: Regime) -> bool:
-    """Wrapper to avoid circular static-method import."""
-    return regime in (Regime.TRENDING_BULLISH, Regime.TRENDING_BEARISH)
+    """Wrapper to avoid circular static-method import.
+
+    RANGING is included: sweep reversals are specifically designed for range
+    markets (liquidity sweep above/below a contained range).
+    TRANSITIONING is included at user's discretion — confidence scoring
+    applies a discount so only A-grade setups get through.
+    VOLATILE_CRISIS and UNKNOWN stay blocked unconditionally.
+    """
+    return regime in (
+        Regime.TRENDING_BULLISH,
+        Regime.TRENDING_BEARISH,
+        Regime.RANGING,
+        Regime.TRANSITIONING,
+    )

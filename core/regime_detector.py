@@ -2,9 +2,9 @@
 
 Regimes drive whether to trade at all:
 - TRENDING_BULLISH/BEARISH: trade in trend direction
-- RANGING: skip new trades (mean-reversion strategies not in scope)
+- RANGING: sweep reversals allowed (their natural habitat — liquidity fades in a range)
 - VOLATILE_CRISIS: skip + tighten existing stops
-- TRANSITIONING: A+ setups only, reduced confidence
+- TRANSITIONING: allowed with confidence discount — only A-grade setups get through
 - UNKNOWN: not enough data — refuse to trade
 """
 from __future__ import annotations
@@ -153,4 +153,9 @@ class RegimeDetector:
     @staticmethod
     def should_trade(reading: RegimeReading) -> bool:
         """True if the regime allows opening new trades."""
-        return reading.regime in (Regime.TRENDING_BULLISH, Regime.TRENDING_BEARISH)
+        return reading.regime in (
+            Regime.TRENDING_BULLISH,
+            Regime.TRENDING_BEARISH,
+            Regime.RANGING,
+            Regime.TRANSITIONING,
+        )

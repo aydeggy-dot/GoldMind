@@ -96,8 +96,11 @@ def test_trend_continuation_long_signal(strat, symbol_info):
     from ta.trend import EMAIndicator
     fast = EMAIndicator(close=h1["close"], window=strat.fast_ema).ema_indicator()
     fast_now = float(fast.iloc[-1])
-    h1.loc[h1.index[-1], "low"] = fast_now - 1.5
-    h1.loc[h1.index[-1], "open"] = fast_now - 1.0
+    # Pullback must produce SL >= min_sl_points (500) * point (0.01) = $5.
+    # entry=fast_now+2.0, low=fast_now-2.5, wiggle=100pts=$1.0 → sl_dist=$5.5 → 550pts ✓
+    # True Range ≈ 13.75 < 15.7 → ATR ratio ≈ 1.87 < 2.0 (no VOLATILE_CRISIS)
+    h1.loc[h1.index[-1], "low"] = fast_now - 2.5
+    h1.loc[h1.index[-1], "open"] = fast_now - 1.5
     h1.loc[h1.index[-1], "close"] = fast_now + 2.0  # bullish close above fast EMA
     h1.loc[h1.index[-1], "high"] = fast_now + 2.3
 

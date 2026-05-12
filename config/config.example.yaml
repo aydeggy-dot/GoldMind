@@ -58,13 +58,13 @@ risk:
   max_concurrent_trades: 2
   min_rr_ratio: 2.0
   target_rr_ratio: 2.5
-  min_sl_points: 200
-  max_sl_points: 500
-  wiggle_room_points: 30
+  min_sl_points: 500
+  max_sl_points: 2000
+  wiggle_room_points: 100
   partial_close_pct: 50
   move_to_be_after_partial: true
   trailing_stop_enabled: true
-  trailing_stop_distance: 150
+  trailing_stop_distance: 500
   max_spread_points: 40
 
 margin:

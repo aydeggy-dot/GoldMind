@@ -42,8 +42,11 @@ def _engineer_pullback(h1: pd.DataFrame, fast_ema_period: int = 50) -> pd.DataFr
     # Carve two pullback zones (rows halfway and 3/4 of the way)
     for i in (len(df) // 2, 3 * len(df) // 4):
         fn = float(fast.iloc[i])
-        df.loc[i, "low"] = fn - 1.5
-        df.loc[i, "open"] = fn - 1.0
+        # Pullback must produce SL >= min_sl_points (500) * point (0.01) = $5.
+        # entry=fn+2.0, low=fn-2.5, wiggle=100pts=$1.0 → sl_dist=$5.5 → 550pts ✓
+        # True Range ≈ 13.75 < 15.7 → ATR ratio ≈ 1.87 < 2.0 (no VOLATILE_CRISIS)
+        df.loc[i, "low"] = fn - 2.5
+        df.loc[i, "open"] = fn - 1.5
         df.loc[i, "close"] = fn + 2.0
         df.loc[i, "high"] = fn + 2.3
     return df
